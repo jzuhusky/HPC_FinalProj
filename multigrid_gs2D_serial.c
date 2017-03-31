@@ -3,6 +3,8 @@
  *	Joe Zuhusky
  *	Serial Implementation of 2D Multigrid-Method
  *	for 2D Poission Equation
+ *	First Attempt at A simple serial multigrid 
+ *	Implementation
  */
 
 #include "util.h"
@@ -14,14 +16,13 @@
 int main(int argc, char **argv){
 
 	if ( argc != 4 ){
-                printf("Please provide 3 Args: Mesh Size, Max Iterations, Convergence Factor (Residual Decrease by this factor to conv)\n");
+                printf("Please provide 3 Args: Mesh Size, Max Iterations, # Threads\n");
                 exit(0);
         }
 
 	int print_flag = 1;
 
 	const int N = atoi(argv[1])+2;
-	int convergenceFactor = atoi(argv[3]);
 	int steps=0;
 	int i,j;
 	long int max_iter = atoi(argv[2]);
@@ -34,7 +35,7 @@ int main(int argc, char **argv){
 	
 	for (i=0;i<N;i++){
 		*(u+i) = (double*)malloc(sizeof(double)*N);
-		*(rho+i)  = (double*)malloc(sizeof(double)*N);
+		*(rho+i) = (double*)malloc(sizeof(double)*N);
 	}
 
 	h = 1.0/(N+1.0); 
@@ -45,11 +46,10 @@ int main(int argc, char **argv){
 	for (f=0; f<N; f++){
 		for (g=0; g<N; g++){
 			u[f][g]=0.0;
-			rho[f][g]=1.0;
+			rho[f][g]=0.0;
 		}
 	}
 	// Some Charge Distributions
-	//rho[N/2][N/2] = -1.0; // Electron Monopole...
 
 	double temp2, res,initRes;
 	/* timing */
@@ -61,29 +61,28 @@ int main(int argc, char **argv){
 		res = 0.0;
 		for (i=1; i<N-1; i++){
 			for (j=1; j < N-1; j++){
-				u[i][j] = (u[i-1][j]+u[i+1][j] + u[i][j-1] + u[i][j+1] + rho[i][j]*h*h)/4.0;
+				if ( i == N/2 && j == N/2){
+					u[i][j] = (u[i-1][j]+u[i+1][j] + u[i][j-1] + u[i][j+1] + 1.0*h*h)/4.0;
+				}else{
+					u[i][j] = (u[i-1][j]+u[i+1][j] + u[i][j-1] + u[i][j+1] + 0.0*h*h)/4.0;
+				}
+                       	       	//temp2 = (4*u[i][j]-u[i-1][j]-u[i+1][j] - u[i][j-1] - u[i][j+1] - 1.0*h*h);
+                     		//res += temp2*temp2;
 			}
 		}
-		// Computing Residual...
-		for(i=1;i<N-1;i++){
-			for(j=1; j<N-1; j++){
-				temp2 = (4*u[i][j]-u[i-1][j]-u[i+1][j] - u[i][j-1] - u[i][j+1] - rho[i][j]*h*h);
-				res += temp2*temp2;
-			}
-		}
-		res = sqrt(res);
+		//res = sqrt(res);
 		if ( steps == 0 ){
-                        initRes = res;
+                 //       initRes = res;
                 }else{
-                        if ( initRes / res > convergenceFactor ){
-                               break;
-                        }
+                 //       if ( initRes / res > 10000 ){
+                    //           break;
+                  //      }
                 }
 		steps++;	
     	} // end while
   	get_timestamp(&time2);
 
-	printf("%d Iterations & %f percent of initial residual \n",steps,res/initRes*100.0);
+	//printf("%d Iterations & %f percent of initial residual \n",steps,res/initRes*100.0);
 	
 	if (print_flag !=0 ){
 		FILE *outFile = fopen("Gauss-Seidel2D.dat", "w" );
@@ -93,7 +92,7 @@ int main(int argc, char **argv){
 			}
 		}
 		int closed = fclose(outFile); 
-		printf("Closed: %d\nSuccessfully wrote Gauss-Seidel Result to File: gs2D-Serial.dat\n",closed);
+	//	printf("Closed: %d\nSuccessfully wrote Gauss-Seidel Result to File: gs2D-omp.dat\n",closed);
 	}
 
 	double elapsed = timestamp_diff_in_seconds(time1,time2);
