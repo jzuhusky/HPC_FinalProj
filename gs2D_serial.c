@@ -57,6 +57,7 @@ int main(int argc, char **argv){
   	get_timestamp(&time1);
 	int numNotConv = 0;
 	// Doing GS such that f(x,y) = 1.0 for the entire space...
+	printf("#Gs step number | norm\n");
 	while( steps < max_iter ){
 		res = 0.0;
 		for (i=1; i<N-1; i++){
@@ -68,10 +69,11 @@ int main(int argc, char **argv){
 		for(i=1;i<N-1;i++){
 			for(j=1; j<N-1; j++){
 				temp2 = (4*u[i][j]-u[i-1][j]-u[i+1][j] - u[i][j-1] - u[i][j+1] - rho[i][j]*h*h);
-				res += temp2*temp2;
+				res += temp2 * temp2;
 			}
 		}
 		res = sqrt(res);
+		printf("%d %f\n",steps, res);
 		if ( steps == 0 ){
                         initRes = res;
                 }else{
@@ -86,19 +88,16 @@ int main(int argc, char **argv){
 	printf("%d Iterations & %f percent of initial residual \n",steps,res/initRes*100.0);
 	
 	if (print_flag !=0 ){
-		FILE *outFile = fopen("Gauss-Seidel2D.dat", "w" );
 		for (i=0;i<N;i++){
 			for (j=0;j<N;j++){
-				fprintf(outFile,"%f %f %f\n",h*i,h*j,u[i][j]);
+		//		printf("%f %f %f\n",h*i,h*j,u[i][j]);
 			}
 		}
-		int closed = fclose(outFile); 
-		printf("Closed: %d\nSuccessfully wrote Gauss-Seidel Result to File: gs2D-Serial.dat\n",closed);
 	}
 
 	double elapsed = timestamp_diff_in_seconds(time1,time2);
-	printf("Time elapsed is %f seconds.\n", elapsed);	
-	printf("%d %d %f\n",N-2,atoi(argv[argc-1]) , elapsed);
+//	printf("Time elapsed is %f seconds.\n", elapsed);	
+//	printf("%d %d %f\n",N-2,atoi(argv[argc-1]) , elapsed);
 	// Free all that malloced space...
 	for (i=0;i<N;i++){
 		free(*(u+i));
