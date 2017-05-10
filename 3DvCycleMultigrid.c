@@ -3,6 +3,11 @@
  *	Serial Implementation of 3D Multigrid-Method
  *	for 3D Poission Equation
  *	Implementation
+ *
+ *
+ *	WARNING: THIS CODE IS NOT YET WORKING!!!!!!!!!!!
+ *
+ *
  */
 
 #include "util.h"

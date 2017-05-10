@@ -1,5 +1,6 @@
 /*
  * Helper Function File
+ * for MPI multigrid code ONLY
  */
 
 #include "util.h"
