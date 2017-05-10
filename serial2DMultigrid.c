@@ -121,10 +121,12 @@ int main(int argc, char **argv){
 	get_timestamp(&time1);
 	r_norm = residualNorm(N,uPtrs[0],defects[0], rhs[0]);
 	initNorm=r_norm;
+	printf("#Vcycles | norm/InitNorm\n");
 	printf("%f\n",r_norm / initNorm);
+	int ct=0;
 	while ( (r_norm / initNorm) > conv_tol ){
 		r_norm = residualNorm(N,uPtrs[0],defects[0], rhs[0]);
-		printf("Norm=%0.8f -> %8f %% of init\n",r_norm, r_norm/initNorm * 100);
+		printf("%d %0.8f \n",ct++, r_norm/initNorm );
 		for (k=0; k<numberOfGrids-1;k++){
 			relax(v1,uPtrs[k],rhs[k], N);
 			computeResidual(N,uPtrs[k],defects[k],rhs[k]);

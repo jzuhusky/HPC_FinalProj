@@ -52,9 +52,11 @@ int main(int argc, char **argv){
 	pGlobal = p;
 
 	/* Assert Params*/
-	if ( argc < 2|| argc > 3){
+	if ( argc < 2 ){
+		if ( rank == 0 ){
 		printf("Please enter the correct number of parameters\n");
 		printf("[Dimension of Problem (power of 2)] | [Number Of Grids]\n");
+		}
 		exit(1);
 	}
 	/*Check to make sure parallel Job requested */
@@ -138,7 +140,6 @@ int main(int argc, char **argv){
 		}
 	}
 
-
 	// For each C, do a V-Cycle
 	get_timestamp(&time1);	
 	// Initialize Norm
@@ -192,11 +193,24 @@ int main(int argc, char **argv){
 	} // END V-Cycle Loop
 	get_timestamp(&time2);
 
-//	printMatPlot(N,uPtrs[0],rank,sqrt(p));
+	//printMatPlot(N,uPtrs[0],rank,sqrt(p));
 	
 	/*Clean Up and Finish */
-
-	// TODO FREE ALL MEMORY USED!!
+	// Preprocessing -> Allocate Space for all of the Grids/Defects/Buffers
+	for(i=0;i<numberOfGrids;i++){
+		free(uPtrs[i]);
+		free(rhs[i]);
+		free(defects[i] );
+		// Officially Allocate Space for Buffers
+		free(topGhosts[i]);
+		free(botGhosts[i] );
+		free(leftGhosts[i]);
+		free(rightGhosts[i]);
+		free(topOut[i]);
+		free(botOut[i]);
+		free(leftOut[i]);
+		free(rightOut[i]);
+	}
 
 	// Print Final MPI & Timing Results
 	double elapsed = timestamp_diff_in_seconds(time1,time2), elapsedSum=0.0;
@@ -312,6 +326,10 @@ void interpolateToFine(int fromDim, double **coarseGrid, double **fineGrid, int 
 	double *rightOut = (double*)calloc(N,sizeof(double));
 	loadBuffers(topOut,botOut,leftOut,rightOut,coarseGrid,fromDim,p);
 	doSwaps(topOut,botOut,leftOut,rightOut,topGhost,botGhost,leftGhost,rightGhost,fromDim);
+	free(topOut);
+	free(botOut);
+	free(leftOut);
+	free(rightOut);
 		
 	// Copy bottom and Left Ghosts into Original Array
 	for(i=0;i<fromDim;i++){
@@ -370,6 +388,10 @@ void restrictToCoarse(int fromDim,double **dest, double **origin, int rank, int 
 	loadBuffers(topOut,botOut,leftOut,rightOut,origin,fromDim,p);
 	doSwaps(topOut,botOut,leftOut,rightOut,topGhost,botGhost,leftGhost,rightGhost,fromDim);
 	N = fromDim/2 + 1;
+	free(topOut);
+	free(botOut);
+	free(leftOut);
+	free(rightOut);
 
 	for(i=1;i<N-1;i++){
 		for(j=1;j<N-1;j++){
@@ -395,6 +417,10 @@ void computeResidual(int dim, double **u, double **res, double **rho,double *top
 	double *rightOut = (double*)calloc(N,sizeof(double));
 	loadBuffers(topOut,botOut,leftOut,rightOut,u,N,pGlobal);
 	doSwaps(topOut,botOut,leftOut,rightOut,topGhost,botGhost,leftGhost,rightGhost,N);
+	free(topOut);
+	free(botOut);
+	free(leftOut);
+	free(rightOut);
 	for(i=0;i<N;i++){
 		u[0][i] = botGhost[i];
 		u[i][0] = leftGhost[i];
@@ -431,7 +457,6 @@ void relax(int iterations, double **u,double **rhs, int dim, int rank, int p,
 	double *leftOut = (double*)calloc(N,sizeof(double));
 	double *rightOut = (double*)calloc(N,sizeof(double));
 	procsPerRow = sqrt(p);
-	//h = 1.0 / (N - 1.0) /procsPerRow;
 	h = 1.0 / (N - 1.0) / procsPerRow;
 
 	for(iter=0;iter<iterations;iter++){
@@ -455,13 +480,15 @@ void relax(int iterations, double **u,double **rhs, int dim, int rank, int p,
 		for(i=1;i<N-1;i++){
 			if ( rank < (p-procsPerRow) ){
 				u[N-1][i]=u[N-1][i]+w*(u[N-2][i]+u[N-1][i+1]+u[N-1][i-1]+topGhost[i]+rhs[N-1][i]*h*h-4.0*u[N-1][i])/4.0;
-				if ( rank % procsPerRow > 0 )
+				if ( rank % procsPerRow > 0 ){
 					u[N-1][1] = u[N-1][1] + w * (u[N-1][2]+u[N-1][0]+u[N-2][1]+topGhost[1]+rhs[N-1][1]*h*h - 4.0*u[N-1][1])/4.0;
+				}
 			}
 			if ( (rank+1) % procsPerRow > 0 ){
 				u[i][N-1] = u[i][N-1] + w * (u[i-1][N-1]+u[i+1][N-1]+u[i][N-2]+rightGhost[i]+rhs[i][N-1]*h*h - 4.0*u[i][N-1])/4.0;
-				if ( rank < (p-procsPerRow) )
+				if ( rank < (p-procsPerRow) ){
 					u[N-1][N-1] = u[N-1][N-1]+w*(u[N-2][N-1]+u[N-1][N-2]+topGhost[N-1]+rightGhost[N-1]+rhs[N-1][N-1]*h*h-4.0*u[N-1][N-1])/4.0;
+				}
 			}
 		}
 		loadBuffers(topOut,botOut,leftOut,rightOut,u,N,p);
@@ -482,13 +509,15 @@ void relax(int iterations, double **u,double **rhs, int dim, int rank, int p,
 		for(i=1;i<N-1;i++){
 			if ( rank < (p-procsPerRow) ){
 				u[N-1][i]=u[N-1][i]+w*(u[N-2][i]+u[N-1][i+1]+u[N-1][i-1]+topGhost[i]+rhs[N-1][i]*h*h-4.0*u[N-1][i])/4.0;
-				if ( rank % procsPerRow > 0 )
+				if ( rank % procsPerRow > 0 ){
 					u[N-1][1] = u[N-1][1] + w * (u[N-1][2]+u[N-1][0]+u[N-2][1]+topGhost[1]+rhs[N-1][1]*h*h - 4.0*u[N-1][1])/4.0;
+				}
 			}
 			if ( (rank+1) % procsPerRow > 0 ){
 				u[i][N-1] = u[i][N-1] + w * (u[i-1][N-1]+u[i+1][N-1]+u[i][N-2]+rightGhost[i]+rhs[i][N-1]*h*h - 4.0*u[i][N-1])/4.0;
-				if ( rank < (p-procsPerRow) )
+				if ( rank < (p-procsPerRow) ){
 					u[N-1][N-1] = u[N-1][N-1]+w*(u[N-2][N-1]+u[N-1][N-2]+topGhost[N-1]+rightGhost[N-1]+rhs[N-1][N-1]*h*h-4.0*u[N-1][N-1])/4.0;
+				}
 			}
 		}
 	}

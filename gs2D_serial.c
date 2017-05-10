@@ -51,18 +51,25 @@ int main(int argc, char **argv){
 	// Some Charge Distributions
 	//rho[N/2][N/2] = -1.0; // Electron Monopole...
 
-	double temp2, res,initRes;
+	double temp2, res,initRes, conv_tol=1.0/convergenceFactor;
 	/* timing */
   	timestamp_type time1, time2;
   	get_timestamp(&time1);
 	int numNotConv = 0;
+	int FLOPct=0;
 	// Doing GS such that f(x,y) = 1.0 for the entire space...
-	printf("#Gs step number | norm\n");
-	while( steps < max_iter ){
+	while( steps == 0 || conv_tol < res/initRes ){
 		res = 0.0;
 		for (i=1; i<N-1; i++){
 			for (j=1; j < N-1; j++){
 				u[i][j] = (u[i-1][j]+u[i+1][j] + u[i][j-1] + u[i][j+1] + rho[i][j]*h*h)/4.0;
+				FLOPct += 7;;
+			}
+		}
+		for (i=N-2; i>0; i--){
+			for (j=N-2; j>0; j--){
+				u[i][j] = (u[i-1][j]+u[i+1][j] + u[i][j-1] + u[i][j+1] + rho[i][j]*h*h)/4.0;
+				FLOPct += 7;;
 			}
 		}
 		// Computing Residual...
@@ -70,22 +77,23 @@ int main(int argc, char **argv){
 			for(j=1; j<N-1; j++){
 				temp2 = (4*u[i][j]-u[i-1][j]-u[i+1][j] - u[i][j-1] - u[i][j+1] - rho[i][j]*h*h);
 				res += temp2 * temp2;
+				FLOPct += 8;
 			}
 		}
 		res = sqrt(res);
-		printf("%d %f\n",steps, res);
+		FLOPct++;
 		if ( steps == 0 ){
                         initRes = res;
-                }else{
-                        if ( initRes / res > convergenceFactor ){
-                               break;
-                        }
                 }
+			printf("%d %f\n",steps, res/initRes);
 		steps++;	
+		if (steps > max_iter) break;
     	} // end while
   	get_timestamp(&time2);
-
-	printf("%d Iterations & %f percent of initial residual \n",steps,res/initRes*100.0);
+	double elapsed = timestamp_diff_in_seconds(time1,time2);
+	printf("Time elapsed is %f seconds.\n", elapsed);	
+	printf("%d Iterations & %0.8f percent of initial residual \n",steps,res/initRes*100.0);
+	printf("%f GFlops/s\n",FLOPct/1e9/elapsed);
 	
 	if (print_flag !=0 ){
 		for (i=0;i<N;i++){
@@ -95,9 +103,6 @@ int main(int argc, char **argv){
 		}
 	}
 
-	double elapsed = timestamp_diff_in_seconds(time1,time2);
-//	printf("Time elapsed is %f seconds.\n", elapsed);	
-//	printf("%d %d %f\n",N-2,atoi(argv[argc-1]) , elapsed);
 	// Free all that malloced space...
 	for (i=0;i<N;i++){
 		free(*(u+i));

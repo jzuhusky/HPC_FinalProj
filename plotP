@@ -1,0 +1,14 @@
+set logscale y
+set xlabel "V-Cycle Iterations & GS Iterations"
+set ylabel "Norm / Initial Norm"
+set format y "10^{%L}"
+set title "Multigrid V-Cycles Vs. Gauss-Seidel Iterations 512x512 Grid"
+set termoption font "Arial-Bold,15"
+set border 31 lw 1.0
+set yrange [0.000000001:10]
+set key bottom right
+plot "serialConvIter.dat" title "V(1,1)"
+replot "serial2_1_convIter.dat" title "V(2,1)" pt 5
+replot "serial2_2_convIter.dat" title "V(2,2)" pt 5
+replot "serial3_3_convIter.dat" title "V(3,3)" pt 5
+replot "gsSerialConvIter.dat" title "GS-Symmetric" pt 5
