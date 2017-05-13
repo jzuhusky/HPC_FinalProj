@@ -1,9 +1,8 @@
 /*
  *	Joe Zuhusky
- *	Serial Implementation of 2D Multigrid-Method
+ *	MPI Implementation of 2D Multigrid-Method
  *	for 2D Poission Equation
- *	First Attempt at A simple serial multigrid 
- *	Implementation
+
  */
 
 #include "util.h"
